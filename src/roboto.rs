@@ -3,7 +3,7 @@
 
 use std::{
   collections::HashMap,
-  fmt::Debug
+  fmt::Debug, error::Error
 };
 
 use cosmwasm_std::{
@@ -48,22 +48,42 @@ pub struct RobotoKnownContract {
   pub addr: Option<Addr>,
 }
 
-pub struct Roboto {
+pub struct Roboto<'a> {
   pub app: App,
   pub sender: String,
   pub contracts: HashMap<String, RobotoKnownContract>,
+  pub error_handler: Option<fn(res: &anyhow::Error)>,
+  pub funds: Option<&'a [Coin]>,
 }
 
-impl Roboto {
+impl<'a> Roboto<'a> {
   pub fn new(
     app: App,
-    sender: String,
+    sender: String
   ) -> Self {
     Self {
       app,
       sender,
       contracts: Default::default(),
+      funds: None,
+      error_handler: None
     }
+  }
+
+  pub fn set_funds(
+    &mut self,
+    funds: Option<&'a [Coin]>,
+  ) -> &mut Self {
+    self.funds = funds;
+    self
+  }
+
+  pub fn set_error_handler(
+    &mut self,
+    error_handler: Option<fn(res: &anyhow::Error)>,
+  ) -> &mut Self {
+    self.error_handler = error_handler;
+    self
   }
 
   pub fn init<T>(
@@ -76,13 +96,19 @@ impl Roboto {
   {
     let code_id = self.app.store_code((contract.init)());
 
+    let send_funds: &[Coin] = if let Some(f) = self.funds {
+      f
+    } else {
+      &[]
+    };
+
     let res = self
       .app
       .instantiate_contract(
         code_id,
         Addr::unchecked(self.sender.clone()),
         &contract.msg,
-        &[],
+        send_funds,
         label,
         None
       );
@@ -99,16 +125,15 @@ impl Roboto {
     &mut self,
     label: &str,
     msg: T,
-    funds: Option<&[Coin]>,
-    processor: Option<fn(res: AppResponse)>,
+    ok_handler: Option<fn(res: AppResponse)>,
   ) -> &mut Self
     where
     T: Serialize + Debug
   {
-    let send_funds: &[Coin] = if funds.is_none() {
-      &[]
+    let send_funds: &[Coin] = if let Some(f) = self.funds {
+      f
     } else {
-      funds.unwrap()
+      &[]
     };
 
     let res = self
@@ -117,10 +142,16 @@ impl Roboto {
         Addr::unchecked(self.sender.clone()),
         self.contracts[label].addr.clone().unwrap(),
         &msg,
-        &send_funds
-      ).unwrap();
+        send_funds
+      );
 
-    processor.map(|proc| proc(res));
+    if let Some(err) = res.as_ref().err() {
+      if let Some(error) = self.error_handler {
+        error(err)
+      }
+    } else if let Some(ok) = ok_handler {
+      ok(res.unwrap())
+    };
 
     self
   }

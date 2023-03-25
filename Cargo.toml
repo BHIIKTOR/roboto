@@ -41,3 +41,4 @@ cosmwasm-schema = { workspace = true }
 cosmwasm-std    = { workspace = true }
 serde           = { workspace = true }
 cw-multi-test   = { workspace = true }
+anyhow          = { workspace = true }
