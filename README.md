@@ -40,7 +40,7 @@ mod general {
   fn init() {
     let init_nft_custom = cw721_custom::msg::InstantiateMsg::new(String::from(CREATOR));
 
-    let mut roboto: Roboto = Roboto::new(App::default());
+    let mut roboto: Roboto = Roboto::new(App::default(), "admin".to_string());
 
     let mut orquester_init = RobotoContractData::<InstantiateMsg>::new(
       crate::tests::helpers::nft_orquester_contract,
