@@ -14,15 +14,14 @@ use cosmwasm_std::{
 use cw_multi_test::{
   App,
   Contract,
-  Executor, AppResponse,
+  Executor,
+  AppResponse,
 };
 
 use serde::{
   de::DeserializeOwned,
   Serialize
 };
-
-const OWNER: &str = &"owner";
 
 pub struct RobotoContractDataStruct<T> {
   pub init: fn() -> Box<(dyn Contract<cosmwasm_std::Empty> + 'static)>,
@@ -51,16 +50,19 @@ pub struct RobotoKnownContract {
 
 pub struct Roboto {
   pub app: App,
+  pub sender: String,
   pub contracts: HashMap<String, RobotoKnownContract>,
 }
 
 impl Roboto {
   pub fn new(
     app: App,
+    sender: String,
   ) -> Self {
     Self {
       app,
-      contracts: Default::default()
+      sender,
+      contracts: Default::default(),
     }
   }
 
@@ -78,7 +80,7 @@ impl Roboto {
       .app
       .instantiate_contract(
         code_id,
-        Addr::unchecked(OWNER),
+        Addr::unchecked(self.sender.clone()),
         &contract.msg,
         &[],
         label,
@@ -112,7 +114,7 @@ impl Roboto {
     let res = self
       .app
       .execute_contract(
-        Addr::unchecked(OWNER),
+        Addr::unchecked(self.sender.clone()),
         self.contracts[label].addr.clone().unwrap(),
         &msg,
         &send_funds
