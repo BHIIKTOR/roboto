@@ -1,14 +1,15 @@
 // Inspired by @javiermendonca StakingRobot
 // https://github.com/javierjmc/dao-contracts/commit/dd9cf0ae8a21e7a02fa9a38ad6892bc1a960c8f4#diff-8ba21c3b286ab510ffe18ca0f505731adbb3e7ca4064036a7e3e5fd6f7acd6da
 
+use anyhow::Result as AnyResult;
+
 use std::{
   collections::HashMap,
-  fmt::Debug, error::Error
+  fmt::{Debug, Display},
 };
 
 use cosmwasm_std::{
-  Addr,
-  Coin
+  Addr, Coin, BlockInfo,
 };
 
 use cw_multi_test::{
@@ -52,7 +53,7 @@ pub struct Roboto<'a> {
   pub app: App,
   pub sender: String,
   pub contracts: HashMap<String, RobotoKnownContract>,
-  pub error_handler: Option<fn(res: &anyhow::Error)>,
+  // pub error_handler: Option<fn(res: &anyhow::Error)>,
   pub funds: Option<&'a [Coin]>,
 }
 
@@ -66,15 +67,13 @@ impl<'a> Roboto<'a> {
       sender,
       contracts: Default::default(),
       funds: None,
-      error_handler: None
     }
   }
-
   pub fn set_block(
     &mut self,
-    height: fn() -> u64
+    height: fn(&mut BlockInfo) -> u64
   ) -> &mut Self {
-    self.app.update_block(|mut block| block.height = height());
+    self.app.update_block(|mut block| block.height = height(block));
     self
   }
 
@@ -94,11 +93,21 @@ impl<'a> Roboto<'a> {
     self
   }
 
-  pub fn set_error_handler(
+  pub fn add_balance(
     &mut self,
-    error_handler: Option<fn(res: &anyhow::Error)>,
+    recipient: impl Into<String>,
+    coins: Vec<Coin>
   ) -> &mut Self {
-    self.error_handler = error_handler;
+    self.app.init_modules(|router, _api, storage| {
+      router
+      .bank
+      .init_balance(
+          storage,
+          &Addr::unchecked(recipient),
+          coins
+      )
+      .unwrap();
+    });
     self
   }
 
@@ -112,10 +121,7 @@ impl<'a> Roboto<'a> {
   {
     let code_id = self.app.store_code((contract.init)());
 
-    let send_funds = match self.funds {
-        Some(f) => f,
-        None => &[],
-    };
+    let send_funds = self.funds.unwrap_or(&[]);
 
     let res = self
       .app
@@ -128,6 +134,9 @@ impl<'a> Roboto<'a> {
         None
       );
 
+    // clear the funds for next operation
+    self.funds = None;
+
     self.contracts.insert(String::from(label), RobotoKnownContract {
       code_id: Some(code_id),
       addr: Some(res.unwrap()),
@@ -136,19 +145,17 @@ impl<'a> Roboto<'a> {
     self
   }
 
-  pub fn exec<T>(
+  pub fn exec<T, B>(
     &mut self,
     label: &str,
     msg: T,
-    ok_handler: Option<fn(res: AppResponse)>,
+    handler: Option<fn(res: AnyResult<AppResponse, B>)>,
   ) -> &mut Self
     where
-    T: Serialize + Debug
+    T: Serialize + Debug,
+    B: Debug + Display + Sync + Send + 'static
   {
-    let send_funds = match self.funds {
-        Some(f) => f,
-        None => &[],
-    };
+    let send_funds = self.funds.unwrap_or(&[]);
 
     let res = self
       .app
@@ -159,18 +166,14 @@ impl<'a> Roboto<'a> {
         send_funds
       );
 
-    match res {
-      Ok(res) => {
-        if let Some(ok) = ok_handler {
-          ok(res)
-        }
-      },
-      Err(err) => {
-        if let Some(error) = self.error_handler {
-          error(&err);
-          panic!("{}", &err.to_string())
-        }
-      },
+    // clear the funds for next operation
+    self.funds = None;
+
+    if let Some(handle) = handler {
+      match res {
+        Ok(o) => handle(Ok(o)),
+        Err(err) => handle(Err(err.downcast::<B>().unwrap())),
+      }
     }
 
     self
