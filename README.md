@@ -344,9 +344,10 @@ fn main() {
     roboto.exec("counter", increment_msg, Some(handle_response));
 
     // Execute Decrement message using the step method
-    roboto.step(|roboto| {
+    roboto.step(&mut |roboto| {
         let decrement_msg = CounterHandleMsg::Decrement {};
         roboto.exec("counter", decrement_msg, Some(handle_response));
+        roboto
     });
 
     // Query the counter contract
@@ -487,9 +488,10 @@ fn handle_response(res: AnyResult<AppResponse, cosmwasm_std::StdError>) {
 
 // Assume `roboto` is an instance of the Roboto struct
 // Execute Decrement message using the step method
-roboto.step(|roboto| {
+roboto.step(&mut |roboto| {
     let decrement_msg = CounterHandleMsg::Decrement {};
     roboto.exec("counter", decrement_msg, Some(handle_response));
+    roboto
 });
 
 // Query the counter contract

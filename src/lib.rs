@@ -24,6 +24,7 @@ use serde::{
   Serialize
 };
 
+#[derive(Debug, Copy, Clone)]
 pub struct RobotoContractDataStruct<T> {
   pub init: fn() -> Box<(dyn Contract<cosmwasm_std::Empty> + 'static)>,
   pub msg: T
@@ -98,20 +99,28 @@ impl<'a> Roboto<'a> {
     self
   }
 
+  pub fn create_balance(
+    recipient: impl Into<String>,
+    coin: Vec<Coin>
+  ) -> (String, Vec<Coin>) {
+    (recipient.into(), coin)
+  }
+
   pub fn add_balance(
     &mut self,
-    recipient: impl Into<String>,
-    coins: Vec<Coin>
+    tx: Vec<(String, Vec<Coin>)>,
   ) -> &mut Self {
     self.app.init_modules(|router, _api, storage| {
-      router
-      .bank
-      .init_balance(
-          storage,
-          &Addr::unchecked(recipient),
-          coins
-      )
-      .unwrap();
+      tx.into_iter().for_each(|item| {
+        router
+        .bank
+        .init_balance(
+            storage,
+            &Addr::unchecked(item.0),
+            item.1
+        )
+        .unwrap();
+      });
     });
     self
   }
@@ -171,9 +180,6 @@ impl<'a> Roboto<'a> {
         send_funds
       );
 
-    // clear the funds for next operation
-    self.funds = None;
-
     if let Some(handle) = handler {
       match res {
         Ok(o) => handle(Ok(o)),
@@ -227,9 +233,8 @@ impl<'a> Roboto<'a> {
 
   pub fn step(
     &mut self,
-    processor: &mut dyn for<'r> FnMut(&'r mut Self),
+    processor: &mut dyn for<'r> FnMut(&'r mut Self) -> &mut Self,
   ) -> &mut Self {
-    processor(self);
-    self
+    processor(self)
   }
 }
