@@ -2,6 +2,22 @@
 
 ***Domo arigato Mr. Roboto***
 
+## **Note**
+
+This is mostly a learning project.
+
+Documentation wrote by GPT 😎, totally the best use case for it.
+I only added the general example...
+
+**DO NOT USE FOR ANYTHING** 😏
+
+```
+gpt4 is writing my docs 😎
+is a blessed day on earth for all devs
+```
+
+## Description
+
 This code defines a Roboto struct and its associated methods, which help simplify the testing of CosmWasm contracts by providing a convenient wrapper around the cw_multi_test library.
 
 The `Roboto` struct has the following fields:
@@ -489,8 +505,3 @@ match result {
 In this example, we first define a `handle_response` function to process the response from the contract execution. Then, we execute a `Decrement` message using the `Roboto::step` method. The step method takes a closure that allows us to perform additional operations on the `Roboto` instance within the closure. In this case, we use the closure to call the exec method with the `Decrement` message and the `handle_response` function. Finally, we query the counter contract to get the final value of the counter using the `Roboto::query` method and print the result.
 
 ---
-
-# **Note**
-
-This is mostly a learning project.
-Documentation wrote by GPT 😎, totally the best use case for it.
