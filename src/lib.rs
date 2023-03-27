@@ -71,9 +71,14 @@ impl<'a> Roboto<'a> {
   }
   pub fn set_block(
     &mut self,
-    height: fn(&mut BlockInfo) -> u64
+    height: fn(&mut BlockInfo) -> &mut BlockInfo
   ) -> &mut Self {
-    self.app.update_block(|mut block| block.height = height(block));
+    self.app.update_block(|mut block| {
+      let b = height(block).clone();
+      block.chain_id = b.chain_id;
+      block.time = b.time;
+      block.height = b.height;
+    });
     self
   }
 
