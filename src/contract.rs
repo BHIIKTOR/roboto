@@ -3,7 +3,8 @@ use std::fmt::{Debug, Display};
 use anyhow::{anyhow, bail, Result as AnyResult};
 
 use cosmwasm_std::{
-    from_json, from_slice, to_binary, to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Reply, Response, StdResult
+    from_json, to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Reply, Response,
+    StdResult,
 };
 
 use serde::de::DeserializeOwned;

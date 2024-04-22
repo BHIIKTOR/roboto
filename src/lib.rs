@@ -1,3 +1,4 @@
+mod helpers;
 mod app;
 mod contract;
 mod env;

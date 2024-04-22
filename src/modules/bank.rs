@@ -29,6 +29,10 @@ pub enum OPMODE {
 }
 
 impl Bank {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     fn add_balance(coin: &mut Coin, amount: Uint128) -> &Coin {
         coin.amount += amount;
         coin

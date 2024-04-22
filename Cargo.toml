@@ -9,6 +9,14 @@ crate-type = ["cdylib", "rlib"]
 # [[bin]]
 # name = "roboto"
 
+[features]
+default = []
+stargate = []
+staking = []
+gov = []
+distribution = []
+ibc = []
+
 [profile.release]
 opt-level = 3
 debug = false

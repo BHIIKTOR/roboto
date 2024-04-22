@@ -57,6 +57,7 @@ impl App {
         app_res: &mut Result<AppResponse, anyhow::Error>,
     ) -> Vec<Result<AppResponse, anyhow::Error>> {
         let mut out = vec![];
+        // TODO: handle errors
         let data = app_res.as_mut().unwrap();
         out.push(Ok(data.to_owned()));
         while let Some(mut res) = data.responses.pop() {
