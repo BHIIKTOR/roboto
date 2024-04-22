@@ -6,7 +6,7 @@ mod basic {
 
     use cosmwasm_schema::cw_serde;
     use cosmwasm_std::{
-        from_binary, to_binary, to_vec, wasm_execute, Addr, Binary, Deps, DepsMut, Empty, Env,
+        from_json, to_json_binary, wasm_execute, Addr, Binary, Deps, DepsMut, Empty, Env,
         MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg, WasmQuery,
     };
     use cw20::MinterResponse;
@@ -68,7 +68,7 @@ mod basic {
     }
 
     fn dummy_query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-        Ok(to_binary(&Empty {})?)
+        Ok(to_json_binary(&Empty {})?)
     }
 
     fn dummy_init2(
@@ -90,7 +90,7 @@ mod basic {
     }
 
     fn dummy_query2(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-        Ok(to_binary(&Empty {})?)
+        Ok(to_json_binary(&Empty {})?)
     }
 
     #[test]
@@ -133,7 +133,7 @@ mod basic {
         let res = app.execute(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Instantiate {
             admin: None,
             code_id,
-            msg: to_binary(&init_msg).unwrap(),
+            msg: to_json_binary(&init_msg).unwrap(),
             funds: vec![],
             label: "todo!()".to_string(),
         }));
@@ -151,7 +151,7 @@ mod basic {
 
         let res = app.execute(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: addr_contract.clone(),
-            msg: to_binary(&mint_msg).unwrap(),
+            msg: to_json_binary(&mint_msg).unwrap(),
             funds: vec![],
         }));
 
@@ -160,7 +160,7 @@ mod basic {
         let res = app.execute(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Instantiate {
             admin: None,
             code_id: code_id2,
-            msg: to_binary(&InstantiateMsg2 {
+            msg: to_json_binary(&InstantiateMsg2 {
                 name: String::from("taco"),
             })
             .unwrap(),
@@ -182,7 +182,7 @@ mod basic {
 
         let res = app.execute(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: addr_contract2.clone(),
-            msg: to_binary(&mint_msg).unwrap(),
+            msg: to_json_binary(&mint_msg).unwrap(),
             funds: vec![],
         }));
 
@@ -199,7 +199,7 @@ mod basic {
 
         let res = app.query(cosmwasm_std::QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: addr_contract,
-            msg: to_binary(&cw20_base::msg::QueryMsg::Balance {
+            msg: to_json_binary(&cw20_base::msg::QueryMsg::Balance {
                 address: "sender".into(),
             })
             .unwrap(),
@@ -207,7 +207,7 @@ mod basic {
 
         println!(
             "{:#?}",
-            from_binary::<cw20::BalanceResponse>(&res.unwrap()).unwrap()
+            from_json::<cw20::BalanceResponse>(&res.unwrap()).unwrap()
         );
 
         // let res = app

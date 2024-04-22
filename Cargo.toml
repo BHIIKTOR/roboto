@@ -23,9 +23,8 @@ overflow-checks = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 thiserror    = "1.0.21"
-cosmwasm-std = "1.2.7"
+cosmwasm-std = {version = "=2.0.1", features = ["staking", "stargate"]}
 cosmwasm-schema = "1.2.7"
-cw-multi-test = "0.16.5"
 cw-storage-plus = "1.1.0"
 anyhow = "1.0.71"
 serde = "1.0.164"
@@ -33,5 +32,5 @@ prost = "0.11.9"
 schemars = "0.8.12"
 
 [dev-dependencies]
-cw20 = "1.1.0"
-cw20-base = "1.1.0"
+cw20 = "2.0.0"
+cw20-base = "2.0.0"

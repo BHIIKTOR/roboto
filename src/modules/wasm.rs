@@ -5,9 +5,7 @@ use crate::{
 };
 use anyhow::bail;
 use cosmwasm_std::{
-    testing::{MockApi, MockQuerier, MockStorage},
-    to_binary, Addr, Binary, ContractInfoResponse, DepsMut, Empty, Event, MessageInfo,
-    QuerierWrapper, WasmMsg, WasmQuery,
+    testing::{MockApi, MockQuerier, MockStorage}, to_json_binary, Addr, Binary, ContractInfoResponse, DepsMut, Empty, Event, MessageInfo, QuerierWrapper, WasmMsg, WasmQuery
 };
 use schemars::JsonSchema;
 
@@ -177,14 +175,16 @@ impl ModuleLogic for Wasm {
                     panic!("contract with contract_addr {} not found", contract_addr)
                 };
 
-                let mut res = ContractInfoResponse::default();
-                res.code_id = *code_id;
+                // TODO: finish implementing all this params properly
+                let res = ContractInfoResponse::new(
+                    *code_id,
+                    Addr::unchecked(""),
+                    None,
+                    false,
+                    None
+                );
 
-                // TODO: fix this two
-                res.creator = "".into();
-                res.admin = None;
-
-                to_binary(&res).map_err(Into::into)
+                to_json_binary(&res).map_err(Into::into)
             }
             // TODO: this is not priority for now
             // WasmQuery::Raw { contract_addr, key } => todo!(),

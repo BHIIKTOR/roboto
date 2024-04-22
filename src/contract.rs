@@ -3,8 +3,7 @@ use std::fmt::{Debug, Display};
 use anyhow::{anyhow, bail, Result as AnyResult};
 
 use cosmwasm_std::{
-    from_slice, to_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Reply, Response,
-    StdResult,
+    from_json, from_slice, to_binary, to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Reply, Response, StdResult
 };
 
 use serde::de::DeserializeOwned;
@@ -27,6 +26,7 @@ pub struct Contract<Init, Exec, Error, Query, Sudo, Migrate> {
     pub migrate_fn: Option<Box<FnMigrate<Migrate, Error>>>,
 }
 
+// note this is a filler :D
 impl<Init, Exec, Error, Query, Sudo, Migrate> ContractBase
     for Contract<Init, Exec, Error, Query, Sudo, Migrate>
 {
@@ -64,7 +64,7 @@ impl<Init, Exec, Error, Query, Sudo, Migrate> Default
             init_fn: Box::new(|_, _, _, _| -> Result<Response, Error> { Ok(Response::default()) }),
             exec_fn: Box::new(|_, _, _, _| -> Result<Response, Error> { Ok(Response::default()) }),
             query_fn: Some(Box::new(|_, _, _| -> StdResult<Binary> {
-                Ok(to_binary(&Empty {})?)
+                Ok(to_json_binary(&Empty {})?)
             })),
             sudo_fn: Some(Box::new(|_, _, _, _| -> Result<Response, Error> {
                 Ok(Response::default())
@@ -112,7 +112,7 @@ where
         info: MessageInfo,
         msg: Vec<u8>,
     ) -> AnyResult<Response> {
-        let msg = from_slice(&msg)?;
+        let msg = from_json(&msg)?;
         (self.init_fn)(deps, env, info, msg).map_err(|err| anyhow!(err))
     }
 
@@ -123,7 +123,7 @@ where
         info: MessageInfo,
         msg: Vec<u8>,
     ) -> AnyResult<Response> {
-        let msg = from_slice(&msg)?;
+        let msg = from_json(&msg)?;
         (self.exec_fn)(deps, env, info, msg).map_err(|err| anyhow!(err))
     }
 
@@ -131,7 +131,7 @@ where
         let Some(query) = &self.query_fn else {
             bail!("query not implemented for contract")
         };
-        let msg = from_slice(&msg)?;
+        let msg = from_json(&msg)?;
         (query)(deps, env, msg).map_err(|err| anyhow!(err))
     }
 
@@ -139,7 +139,7 @@ where
         let Some(migrate) = &self.migrate_fn else {
             bail!("migrate not implemented for contract")
         };
-        let msg = from_slice(&msg)?;
+        let msg = from_json(&msg)?;
         migrate(deps, env, msg).map_err(|err| anyhow!(err))
     }
 

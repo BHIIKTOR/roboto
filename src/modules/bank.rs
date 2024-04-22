@@ -6,7 +6,7 @@ use crate::{
 use anyhow::bail;
 use cosmwasm_std::{
     testing::{MockApi, MockQuerier, MockStorage},
-    to_binary, BankMsg, BankQuery, Coin, ContractInfoResponse, DepsMut, Empty, Event, MessageInfo, Uint128,
+    BankMsg, BankQuery, Coin, ContractInfoResponse, DepsMut, Empty, Event, MessageInfo, Uint128,
 };
 use schemars::JsonSchema;
 
