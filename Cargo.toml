@@ -33,7 +33,7 @@ overflow-checks = true
 thiserror    = "1.0.21"
 cosmwasm-std = {version = "=2.0.1", features = ["staking", "stargate"]}
 cosmwasm-schema = "1.2.7"
-cw-storage-plus = "1.1.0"
+# cw-storage-plus = "1.1.0"
 anyhow = "1.0.71"
 serde = "1.0.164"
 prost = "0.11.9"

@@ -6,7 +6,7 @@ mod basic {
 
     use cosmwasm_schema::cw_serde;
     use cosmwasm_std::{
-        from_json, testing::mock_info, to_json_binary, wasm_execute, Addr, BankQuery, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg, WasmQuery
+        from_json, testing::mock_info, to_json_binary, wasm_execute, Addr, BalanceResponse, BankMsg, BankQuery, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg, WasmQuery
     };
     use cw20::MinterResponse;
     use thiserror::Error;
@@ -240,6 +240,7 @@ mod basic {
             address: ADMIN.to_string(),
             denom: DENOM.into(),
         }));
+        let res = from_json::<BalanceResponse>(&res.unwrap());
 
         println!("{:#?}", res);
 
