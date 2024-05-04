@@ -5,8 +5,9 @@ use anyhow::{bail, Result as AnyResult};
 use crate::{app::AppResponse, env::RobotoEnv, module::ModuleLogic};
 use cosmwasm_std::{
     testing::{MockApi, MockQuerier, MockStorage},
-    to_json_binary, AllBalanceResponse, BalanceResponse, BankMsg, BankQuery, Coin, Event,
-    MessageInfo, Uint128,
+    to_json_binary, AllBalanceResponse, AllDenomMetadataResponse, BalanceResponse, BankMsg,
+    BankQuery, Coin, DenomMetadata, DenomMetadataResponse, Empty, Event, MessageInfo,
+    SupplyResponse, Uint128,
 };
 
 use schemars::JsonSchema;
@@ -30,6 +31,8 @@ pub enum BankSudo {
 #[derive(Default)]
 pub struct Bank {
     pub balances: HashMap<String, HashMap<String, Coin>>,
+    pub supply: HashMap<String, Uint128>,
+    pub metadata: HashMap<String, DenomMetadata>,
 }
 
 pub enum OPMODE {
@@ -40,6 +43,18 @@ pub enum OPMODE {
 impl Bank {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    fn increase_supply(&mut self, coin: Coin) -> AnyResult<()> {
+        match self.supply.get_mut(&coin.denom) {
+            Some(supply) => *supply += coin.amount,
+            None => {
+                let mut supply = Uint128::zero();
+                supply += coin.amount;
+                self.supply.insert(coin.denom, supply);
+            }
+        }
+        Ok(())
     }
 
     fn get_balance(&mut self, address: &String, denom: &String) -> AnyResult<&mut Coin> {
@@ -155,12 +170,10 @@ impl ModuleLogic for Bank {
                 let _ = self
                     .send_many(info.sender.to_string(), to_address.clone(), amount.clone())
                     .unwrap();
-
                 let events = vec![Event::new("transfer")
                     .add_attribute("recipient", &to_address)
                     .add_attribute("sender", &info.sender)
                     .add_attribute("amount", coins_to_string(&amount))];
-
                 Ok(AppResponse {
                     events,
                     data: None,
@@ -201,6 +214,27 @@ impl ModuleLogic for Bank {
                 ))
                 .unwrap())
             }
+            #[cfg(feature = "cosmwasm_1_1")]
+            BankQuery::Supply { denom } => Ok(to_json_binary(&SupplyResponse::new(Coin {
+                denom: denom.clone(),
+                amount: self.supply.get(&denom).unwrap().clone(),
+            }))
+            .unwrap()),
+            #[cfg(feature = "cosmwasm_1_3")]
+            BankQuery::DenomMetadata { denom } => Ok(to_json_binary(&DenomMetadataResponse::new(
+                self.metadata.get(&denom).unwrap().clone(),
+            ))
+            .unwrap()),
+            #[cfg(feature = "cosmwasm_1_3")]
+            BankQuery::AllDenomMetadata { pagination: _ } => {
+                // if let Some(page) = pagination {}
+                let data = self
+                    .metadata
+                    .iter()
+                    .map(|item| item.1.clone())
+                    .collect::<Vec<DenomMetadata>>();
+                Ok(to_json_binary(&AllDenomMetadataResponse::new(data, None)).unwrap())
+            }
             _ => panic!("wrong BankQuery msg"),
         }
     }
@@ -215,7 +249,9 @@ impl ModuleLogic for Bank {
     ) -> anyhow::Result<AppResponse> {
         match msg {
             BankSudo::Mint { to_address, amount } => {
-                self.update_balance(OPMODE::INC, to_address, amount)
+                self.update_balance(OPMODE::INC, to_address, amount.clone())
+                    .unwrap();
+                self.increase_supply(amount.first().unwrap().clone())
                     .unwrap();
                 Ok(AppResponse::default())
             }
@@ -228,20 +264,30 @@ mod bank {
     use cosmwasm_std::{
         from_json,
         testing::{mock_env, mock_info, MockApi, MockQuerier, MockStorage},
-        AllBalanceResponse, BalanceResponse, BankMsg, BankQuery, Coin, Uint128,
+        AllBalanceResponse, BalanceResponse, BankMsg, BankQuery, Coin, Env,
+        SupplyResponse, Uint128,
     };
 
     use super::{Bank, BankSudo};
     use crate::{env::RobotoEnv, module::ModuleLogic};
 
-    fn mint() -> (Bank, String, Uint128, String) {
-        let api = MockApi::default();
-        let mut storage = MockStorage::default();
-        let querier = MockQuerier::default();
-        let env = mock_env();
+    const DENOM: &str = "utaco";
+    const AMOUNT: u128 = 1_000_000u128;
 
-        let denom = "utaco".to_string();
-        let amount = Uint128::from(1_000_000u128);
+    fn start_mocks() -> (MockApi, MockStorage, MockQuerier, Env) {
+        (
+            MockApi::default(),
+            MockStorage::default(),
+            MockQuerier::default(),
+            mock_env(),
+        )
+    }
+
+    fn mint() -> (Bank, String, Uint128, String) {
+        let (api, mut storage, querier, env) = start_mocks();
+
+        let denom = DENOM.to_string();
+        let amount = Uint128::from(AMOUNT);
         let address = api.addr_make("reciever").to_string();
 
         let mut bank = Bank::new();
@@ -254,7 +300,7 @@ mod bank {
             BankSudo::Mint {
                 to_address: address.clone(),
                 amount: vec![Coin {
-                    denom: denom.to_string(),
+                    denom: denom.clone(),
                     amount,
                 }],
             },
@@ -267,9 +313,7 @@ mod bank {
 
     #[test]
     fn balance() {
-        let api = MockApi::default();
-        let mut storage = MockStorage::default();
-        let querier = MockQuerier::default();
+        let (api, mut storage, querier, _) = start_mocks();
 
         let (bank, denom, amount, address) = mint();
 
@@ -280,15 +324,36 @@ mod bank {
             &mut RobotoEnv::new(),
             BankQuery::Balance { address, denom },
         );
+
         let res = from_json::<BalanceResponse>(&res.unwrap()).unwrap();
+
+        assert_eq!(res.amount.amount, amount);
+    }
+
+    #[test]
+    fn supply() {
+        let (api, mut storage, querier, _) = start_mocks();
+
+        let (bank, _, amount, _) = mint();
+
+        let res = bank.query(
+            &api,
+            &mut storage,
+            &querier,
+            &mut RobotoEnv::new(),
+            BankQuery::Supply {
+                denom: DENOM.to_string(),
+            },
+        );
+
+        let res = from_json::<SupplyResponse>(&res.unwrap()).unwrap();
+
         assert_eq!(res.amount.amount, amount);
     }
 
     #[test]
     fn all_balances() {
-        let api = MockApi::default();
-        let mut storage = MockStorage::default();
-        let querier = MockQuerier::default();
+        let (api, mut storage, querier, _) = start_mocks();
 
         let (bank, _, amount, address) = mint();
 
@@ -306,9 +371,7 @@ mod bank {
 
     #[test]
     fn send() {
-        let api = MockApi::default();
-        let mut storage = MockStorage::default();
-        let querier = MockQuerier::default();
+        let (api, mut storage, querier, _) = start_mocks();
 
         let to_address = api.addr_make("to_address").to_string();
 

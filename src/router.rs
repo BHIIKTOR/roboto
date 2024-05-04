@@ -79,12 +79,12 @@ impl Router {
             QueryRequest::Custom(_) => todo!(),
             // QueryRequest::Bank(bank_query) => self.bank.query(bank_query),
             // QueryRequest::Custom(custom_query) => (*self.custom_handler)(custom_query),
-            #[cfg(feature = "staking")]
-            QueryRequest::Staking(staking_query) => self.staking.query(staking_query),
-            #[cfg(feature = "ibc")]
-            QueryRequest::Ibc(msg) => self.ibc.query(msg),
-            #[cfg(feature = "stargate")]
-            QueryRequest::Stargate { path, data } => todo!(),
+            // #[cfg(feature = "staking")]
+            // QueryRequest::Staking(staking_query) => self.staking.query(staking_query),
+            // #[cfg(feature = "ibc")]
+            // QueryRequest::Ibc(msg) => self.ibc.query(msg),
+            // #[cfg(feature = "stargate")]
+            // QueryRequest::Stargate { path, data } => todo!(),
             _ => panic!("this module is not implemented"),
         };
 
