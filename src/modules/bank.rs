@@ -85,7 +85,7 @@ impl ModuleLogic for Bank {
     ) -> anyhow::Result<AppResponse> {
         match msg {
             BankMsg::Send { to_address, amount } => {
-                self.sub_balance(info.sender.as_str(), amount.clone())?;
+                self.sub_balance(info.sender.as_str(), &amount)?;
                 self.update_balance(to_address, amount);
                 env.increase_tx();
                 Ok(AppResponse::default())
