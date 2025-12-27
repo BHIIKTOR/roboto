@@ -38,7 +38,7 @@ mod bank_test {
         app.execute(cosmwasm_std::CosmosMsg::Bank(BankMsg::Send {
             to_address: receiver.to_string(),
             amount: coins(40, denom),
-        }));
+        })).into_iter().for_each(|r| r.unwrap());
 
         // 4. Check sender balance (should be 60)
         let res = app.query(QueryRequest::Bank(BankQuery::Balance {
