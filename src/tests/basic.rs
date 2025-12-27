@@ -6,14 +6,10 @@ mod basic {
 
     use cosmwasm_schema::cw_serde;
     use cosmwasm_std::{
-        from_json, testing::mock_info, to_json_binary, wasm_execute, Addr, BalanceResponse, BankMsg, BankQuery, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg, WasmQuery
+        from_json, testing::mock_info, to_json_binary, wasm_execute, Addr, BalanceResponse, BankQuery, DepsMut, Empty, Env, MessageInfo, Response, StdError, Uint128, WasmMsg, WasmQuery
     };
     use cw20::MinterResponse;
     use thiserror::Error;
-
-    pub struct InstantiateMsg {
-        name: String,
-    }
 
     #[cw_serde]
     pub struct InstantiateMsg2 {
@@ -29,27 +25,16 @@ mod basic {
         },
     }
 
-    pub struct QueryMsg {}
-
     #[derive(Error, Debug, PartialEq)]
     pub enum ContractError {
         #[error("{0}")]
         Std(#[from] StdError),
     }
 
-    fn dummy_init(
-        mut deps: DepsMut,
+    fn dummy_exec(
+        _deps: DepsMut,
         _env: Env,
         _info: MessageInfo,
-        msg: InstantiateMsg,
-    ) -> Result<Response, ContractError> {
-        Ok(Response::default())
-    }
-
-    fn dummy_exec(
-        deps: DepsMut,
-        env: Env,
-        info: MessageInfo,
         msg: ExecuteMsg,
     ) -> Result<Response, ContractError> {
         match msg {
@@ -62,44 +47,18 @@ mod basic {
                 let msg = wasm_execute(contract, msg, vec![])?;
                 Ok(Response::default().add_message(msg))
             }
-            _ => Ok(Response::default()),
         }
     }
 
-    fn dummy_query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-        Ok(to_json_binary(&Empty {})?)
-    }
-
-    fn dummy_init2(
-        mut deps: DepsMut,
-        _env: Env,
-        _info: MessageInfo,
-        msg: InstantiateMsg2,
-    ) -> Result<Response, ContractError> {
-        Ok(Response::default())
-    }
-
-    fn dummy_exec2(
-        deps: DepsMut,
-        env: Env,
-        info: MessageInfo,
-        msg: ExecuteMsg,
-    ) -> Result<Response, ContractError> {
-        Ok(Response::default())
-    }
-
-    fn dummy_query2(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-        Ok(to_json_binary(&Empty {})?)
-    }
 
     #[test]
     fn basic() {
         let mut app = App::new();
 
-        let ADMIN = app.api.addr_make("admin");
-        let RECIPIENT = app.api.addr_make("recipient");
+        let admin = app.api.addr_make("admin");
+        let recipient = app.api.addr_make("recipient");
 
-        let DENOM = "utaco";
+        let denom = "utaco";
 
         let contract: Contract<
             cw20_base::msg::InstantiateMsg,
@@ -128,7 +87,7 @@ mod basic {
             decimals: 6,
             initial_balances: vec![],
             mint: Some(MinterResponse {
-                minter: Addr::unchecked(ADMIN.clone()).to_string(),
+                minter: Addr::unchecked(admin.clone()).to_string(),
                 cap: None,
             }),
             marketing: None,
@@ -149,11 +108,11 @@ mod basic {
             .clone();
 
         let mint_msg = cw20_base::msg::ExecuteMsg::Mint {
-            recipient: RECIPIENT.to_string(),
+            recipient: recipient.to_string(),
             amount: Uint128::one(),
         };
 
-        app.info = mock_info(&ADMIN.to_string(), &vec![]);
+        app.info = mock_info(&admin.to_string(), &vec![]);
 
         let res = app.execute(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: addr_contract.clone(),
@@ -181,7 +140,7 @@ mod basic {
             .clone();
 
         let mint_msg = ExecuteMsg::Mint {
-            recipient: RECIPIENT.to_string(),
+            recipient: recipient.to_string(),
             amount: Uint128::one(),
             contract: addr_contract.to_string(),
         };
@@ -206,7 +165,7 @@ mod basic {
         let res = app.query(cosmwasm_std::QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: addr_contract,
             msg: to_json_binary(&cw20_base::msg::QueryMsg::Balance {
-                address: ADMIN.to_string(),
+                address: admin.to_string(),
             })
             .unwrap(),
         }));
@@ -237,13 +196,13 @@ mod basic {
         // println!("{:#?}", res);
 
         let res = app.query(cosmwasm_std::QueryRequest::Bank(BankQuery::Balance {
-            address: ADMIN.to_string(),
-            denom: DENOM.into(),
+            address: admin.to_string(),
+            denom: denom.into(),
         }));
         let res = from_json::<BalanceResponse>(&res.unwrap());
 
         println!("{:#?}", res);
 
-        assert!(false)
+        // assert!(false)
     }
 }

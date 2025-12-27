@@ -9,6 +9,7 @@ use crate::{app::AppResponse, env::RobotoEnv, module::ModuleLogic, modules};
 pub struct Router {
     pub wasm: modules::wasm::Wasm,
     pub bank: modules::bank::Bank,
+    pub ibc: modules::ibc::Ibc,
 }
 
 impl Router {
@@ -16,7 +17,7 @@ impl Router {
         Self {
             wasm: modules::wasm::Wasm::new(),
             bank: modules::bank::Bank::new(),
-            // custom: Custom { some: None },
+            ibc: modules::ibc::Ibc::default(),
         }
     }
 
@@ -38,8 +39,7 @@ impl Router {
             CosmosMsg::Distribution(_) => todo!(),
             #[cfg(feature = "gov")]
             CosmosMsg::Gov(_) => todo!(),
-            #[cfg(feature = "ibc")]
-            CosmosMsg::Ibc(_) => todo!(),
+            CosmosMsg::Ibc(msg) => self.ibc.execute(api, storage, querier, env, info, msg),
             #[cfg(feature = "stargate")]
             CosmosMsg::Stargate { type_url, value } => todo!(),
             _ => todo!(),
@@ -77,14 +77,7 @@ impl Router {
             QueryRequest::Bank(msg) => self.bank.query(api, storage, querier, env, msg.clone()),
             #[cfg(feature = "custom")]
             QueryRequest::Custom(_) => todo!(),
-            // QueryRequest::Bank(bank_query) => self.bank.query(bank_query),
-            // QueryRequest::Custom(custom_query) => (*self.custom_handler)(custom_query),
-            // #[cfg(feature = "staking")]
-            // QueryRequest::Staking(staking_query) => self.staking.query(staking_query),
-            // #[cfg(feature = "ibc")]
-            // QueryRequest::Ibc(msg) => self.ibc.query(msg),
-            // #[cfg(feature = "stargate")]
-            // QueryRequest::Stargate { path, data } => todo!(),
+            QueryRequest::Ibc(msg) => self.ibc.query(api, storage, querier, env, msg.clone()),
             _ => panic!("this module is not implemented"),
         };
 

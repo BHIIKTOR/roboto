@@ -1,7 +1,5 @@
 use cosmwasm_std::{Addr, BlockInfo, ContractInfo, Env, Timestamp, TransactionInfo};
 
-use crate::app::App;
-
 pub struct RobotoEnv {
     pub env: Env,
 }

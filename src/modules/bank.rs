@@ -6,8 +6,8 @@ use crate::{app::AppResponse, env::RobotoEnv, module::ModuleLogic};
 use cosmwasm_std::{
     testing::{MockApi, MockQuerier, MockStorage},
     to_json_binary, AllBalanceResponse, AllDenomMetadataResponse, BalanceResponse, BankMsg,
-    BankQuery, Coin, DenomMetadata, DenomMetadataResponse, Empty, Event, MessageInfo,
-    SupplyResponse, Uint128,
+    BankQuery, Coin, DenomMetadata, DenomMetadataResponse, Event, MessageInfo, SupplyResponse,
+    Uint128,
 };
 
 use schemars::JsonSchema;
@@ -183,6 +183,12 @@ impl ModuleLogic for Bank {
             BankMsg::Burn { amount } => {
                 amount.into_iter().for_each(|coin| {
                     self.check_balance(&info.sender.to_string(), &coin).unwrap();
+                    self.update_balance(
+                        OPMODE::DEC,
+                        info.sender.to_string(),
+                        vec![coin.clone()],
+                    )
+                    .unwrap();
                 });
                 Ok(AppResponse::default())
             }
@@ -200,11 +206,17 @@ impl ModuleLogic for Bank {
     ) -> anyhow::Result<cosmwasm_std::Binary> {
         match msg {
             BankQuery::Balance { address, denom } => {
-                let balance = self.balances.get(&address).unwrap().get(&denom).unwrap();
+                let default_coin = Coin::new(0u128, &denom);
+                let balance = self
+                    .balances
+                    .get(&address)
+                    .and_then(|b| b.get(&denom))
+                    .unwrap_or(&default_coin);
                 Ok(to_json_binary(&BalanceResponse::new(balance.clone())).unwrap())
             }
             BankQuery::AllBalances { address } => {
-                let balance = self.balances.get(&address).unwrap();
+                let default_balance = HashMap::new();
+                let balance = self.balances.get(&address).unwrap_or(&default_balance);
                 Ok(to_json_binary(&AllBalanceResponse::new(
                     balance
                         .into_iter()
@@ -214,20 +226,26 @@ impl ModuleLogic for Bank {
                 ))
                 .unwrap())
             }
-            #[cfg(feature = "cosmwasm_1_1")]
-            BankQuery::Supply { denom } => Ok(to_json_binary(&SupplyResponse::new(Coin {
-                denom: denom.clone(),
-                amount: self.supply.get(&denom).unwrap().clone(),
-            }))
-            .unwrap()),
-            #[cfg(feature = "cosmwasm_1_3")]
-            BankQuery::DenomMetadata { denom } => Ok(to_json_binary(&DenomMetadataResponse::new(
-                self.metadata.get(&denom).unwrap().clone(),
-            ))
-            .unwrap()),
-            #[cfg(feature = "cosmwasm_1_3")]
+            BankQuery::Supply { denom } => {
+                let default_supply = Uint128::zero();
+                let supply = self.supply.get(&denom).unwrap_or(&default_supply);
+                Ok(to_json_binary(&SupplyResponse::new(Coin {
+                    denom: denom.clone(),
+                    amount: supply.clone(),
+                }))
+                .unwrap())
+            }
+            BankQuery::DenomMetadata { denom } => {
+                // Return error if not found, or empty? DenomMetadataResponse has metadata field.
+                // If not found, standard behavior is error or empty?
+                // Let's assume unwrap for now if metadata is expected, or better:
+                if let Some(meta) = self.metadata.get(&denom) {
+                    Ok(to_json_binary(&DenomMetadataResponse::new(meta.clone())).unwrap())
+                } else {
+                    bail!("Metadata not found for denom: {}", denom)
+                }
+            }
             BankQuery::AllDenomMetadata { pagination: _ } => {
-                // if let Some(page) = pagination {}
                 let data = self
                     .metadata
                     .iter()
