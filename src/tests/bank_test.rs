@@ -59,7 +59,7 @@ mod bank_test {
         // 6. Burn funds from sender
         app.execute(cosmwasm_std::CosmosMsg::Bank(BankMsg::Burn {
             amount: coins(10, denom),
-        }));
+        })).into_iter().for_each(|r| r.unwrap());
 
         // 7. Check sender balance (should be 50)
         let res = app.query(QueryRequest::Bank(BankQuery::Balance {
