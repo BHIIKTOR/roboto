@@ -49,7 +49,7 @@ impl Bank {
     fn sub_balance(
         &mut self,
         address: &str,
-        amount: Vec<Coin>,
+        amount: &[Coin],
     ) -> anyhow::Result<()> {
         let Some(wallet) = self.balances.get_mut(address) else {
             bail!("Wallet not found for address: {}", address);
