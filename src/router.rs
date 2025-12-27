@@ -9,15 +9,14 @@ use crate::{app::AppResponse, env::RobotoEnv, module::ModuleLogic, modules};
 pub struct Router {
     pub wasm: modules::wasm::Wasm,
     pub bank: modules::bank::Bank,
-    pub ibc: modules::ibc::Ibc,
 }
 
 impl Router {
     pub fn new() -> Self {
         Self {
             wasm: modules::wasm::Wasm::new(),
-            bank: modules::bank::Bank::default(),
-            ibc: modules::ibc::Ibc::default(),
+            bank: modules::bank::Bank::new(),
+            // custom: Custom { some: None },
         }
     }
 
@@ -31,14 +30,16 @@ impl Router {
         msg: CosmosMsg,
     ) -> anyhow::Result<AppResponse> {
         match msg {
-            CosmosMsg::Wasm(m) => self.wasm.execute(api, storage, querier, env, info, m),
-            CosmosMsg::Bank(m) => self.bank.execute(api, storage, querier, env, info, m),
-            CosmosMsg::Custom(_) => todo!(),
+            CosmosMsg::Wasm(msg) => self.wasm.execute(api, storage, querier, env, info, msg),
+            CosmosMsg::Bank(msg) => self.bank.execute(api, storage, querier, env, info, msg),
+            #[cfg(feature = "staking")]
             CosmosMsg::Staking(_) => todo!(),
+            #[cfg(feature = "distribution")]
             CosmosMsg::Distribution(_) => todo!(),
+            #[cfg(feature = "gov")]
             CosmosMsg::Gov(_) => todo!(),
-            // TODO: You are next IBC
-            CosmosMsg::Ibc(m) => self.ibc.execute(api, storage, querier, env, info, m),
+            #[cfg(feature = "ibc")]
+            CosmosMsg::Ibc(_) => todo!(),
             #[cfg(feature = "stargate")]
             CosmosMsg::Stargate { type_url, value } => todo!(),
             _ => todo!(),
@@ -74,15 +75,17 @@ impl Router {
         let query_res = match &request {
             QueryRequest::Wasm(msg) => self.wasm.query(api, storage, querier, env, msg.clone()),
             QueryRequest::Bank(msg) => self.bank.query(api, storage, querier, env, msg.clone()),
-            // QueryRequest::Custom(custom_query) => (*self.custom_handler)(custom_query),
-            #[cfg(feature = "staking")]
-            QueryRequest::Staking(staking_query) => self.staking.query(staking_query),
-            QueryRequest::Ibc(msg) => self.ibc.query(api, storage, querier, env, msg.clone()),
-
+            #[cfg(feature = "custom")]
             QueryRequest::Custom(_) => todo!(),
-            #[cfg(feature = "stargate")]
-            QueryRequest::Stargate { path, data } => todo!(),
-            _ => todo!(),
+            // QueryRequest::Bank(bank_query) => self.bank.query(bank_query),
+            // QueryRequest::Custom(custom_query) => (*self.custom_handler)(custom_query),
+            // #[cfg(feature = "staking")]
+            // QueryRequest::Staking(staking_query) => self.staking.query(staking_query),
+            // #[cfg(feature = "ibc")]
+            // QueryRequest::Ibc(msg) => self.ibc.query(msg),
+            // #[cfg(feature = "stargate")]
+            // QueryRequest::Stargate { path, data } => todo!(),
+            _ => panic!("this module is not implemented"),
         };
 
         let contract_result: ContractResult<Binary> = query_res.into();

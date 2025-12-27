@@ -1,7 +1,8 @@
-pub mod app;
-pub mod contract;
-pub mod env;
-pub mod module;
-pub mod modules;
-pub mod router;
+mod helpers;
+mod app;
+mod contract;
+mod env;
+mod module;
+mod modules;
+mod router;
 mod tests;
