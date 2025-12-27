@@ -109,15 +109,11 @@ impl ModuleLogic for Bank {
     ) -> anyhow::Result<cosmwasm_std::Binary> {
         match msg {
             BankQuery::Balance { address, denom } => {
-                let amount = if let Some(wallet) = self.balances.get(&address) {
-                    if let Some(coin) = wallet.get(&denom) {
-                         coin.clone()
-                    } else {
-                         Coin::new(0, denom)
-                    }
-                } else {
-                    Coin::new(0, denom)
-                };
+                let amount = self.balances
+                    .get(&address)
+                    .and_then(|wallet| wallet.get(&denom))
+                    .cloned()
+                    .unwrap_or_else(|| Coin::new(0, denom));
                 to_binary(&cosmwasm_std::BalanceResponse { amount }).map_err(Into::into)
             }
             BankQuery::AllBalances { address } => {
