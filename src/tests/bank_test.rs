@@ -83,7 +83,6 @@ mod bank_test {
         let mut app = App::new();
         // Just check if we can query IBC without panic
         let res = app.query(QueryRequest::Ibc(cosmwasm_std::IbcQuery::ListChannels { port_id: None }));
-        assert!(res.is_err());
-        assert_eq!(res.unwrap_err(), "ibc query unsupported");
+        assert_eq!(res.unwrap_err().to_string(), "Generic error: ibc query unsupported");
     }
 }
