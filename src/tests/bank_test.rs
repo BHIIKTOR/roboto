@@ -23,7 +23,7 @@ mod bank_test {
                 to_address: sender.to_string(),
                 amount: coins(100, denom),
             },
-        ).unwrap();
+        ).expect("sudo mint should not fail");
 
         // 2. Check sender balance
         let res = app.query(QueryRequest::Bank(BankQuery::Balance {
