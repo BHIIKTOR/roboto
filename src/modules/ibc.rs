@@ -7,12 +7,14 @@ use cosmwasm_std::{
     Empty, IbcMsg, IbcQuery, MessageInfo,
 };
 
+use anyhow::bail;
+
 #[derive(Default)]
-pub struct ibc {
+pub struct Ibc {
     pub channels: Empty,
 }
 
-impl ModuleLogic for ibc {
+impl ModuleLogic for Ibc {
     type ExecM = IbcMsg;
     type QueryM = IbcQuery;
     type SudoM = Empty;
@@ -37,7 +39,7 @@ impl ModuleLogic for ibc {
         _env: &mut RobotoEnv,
         _msg: Self::QueryM,
     ) -> anyhow::Result<cosmwasm_std::Binary> {
-        todo!()
+        bail!("ibc query unsupported")
     }
 
     fn sudo(

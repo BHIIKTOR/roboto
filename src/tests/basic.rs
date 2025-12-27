@@ -6,15 +6,11 @@ mod basic {
 
     use cosmwasm_schema::cw_serde;
     use cosmwasm_std::{
-        from_binary, to_binary, to_vec, wasm_execute, Addr, Binary, Deps, DepsMut, Empty, Env,
-        MessageInfo, Response, StdError, StdResult, Uint128, WasmMsg, WasmQuery,
+        from_binary, to_binary, wasm_execute, Addr, DepsMut, Empty, Env,
+        MessageInfo, Response, StdError, Uint128, WasmMsg, WasmQuery,
     };
     use cw20::MinterResponse;
     use thiserror::Error;
-
-    pub struct InstantiateMsg {
-        name: String,
-    }
 
     #[cw_serde]
     pub struct InstantiateMsg2 {
@@ -30,27 +26,16 @@ mod basic {
         },
     }
 
-    pub struct QueryMsg {}
-
     #[derive(Error, Debug, PartialEq)]
     pub enum ContractError {
         #[error("{0}")]
         Std(#[from] StdError),
     }
 
-    fn dummy_init(
-        mut deps: DepsMut,
+    fn dummy_exec(
+        _deps: DepsMut,
         _env: Env,
         _info: MessageInfo,
-        msg: InstantiateMsg,
-    ) -> Result<Response, ContractError> {
-        Ok(Response::default())
-    }
-
-    fn dummy_exec(
-        deps: DepsMut,
-        env: Env,
-        info: MessageInfo,
         msg: ExecuteMsg,
     ) -> Result<Response, ContractError> {
         match msg {
@@ -63,34 +48,7 @@ mod basic {
                 let msg = wasm_execute(contract, msg, vec![])?;
                 Ok(Response::default().add_message(msg))
             }
-            _ => Ok(Response::default()),
         }
-    }
-
-    fn dummy_query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-        Ok(to_binary(&Empty {})?)
-    }
-
-    fn dummy_init2(
-        mut deps: DepsMut,
-        _env: Env,
-        _info: MessageInfo,
-        msg: InstantiateMsg2,
-    ) -> Result<Response, ContractError> {
-        Ok(Response::default())
-    }
-
-    fn dummy_exec2(
-        deps: DepsMut,
-        env: Env,
-        info: MessageInfo,
-        msg: ExecuteMsg,
-    ) -> Result<Response, ContractError> {
-        Ok(Response::default())
-    }
-
-    fn dummy_query2(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
-        Ok(to_binary(&Empty {})?)
     }
 
     #[test]
@@ -230,6 +188,6 @@ mod basic {
 
         // println!("{:#?}", res);
 
-        assert!(false)
+        // assert!(false)
     }
 }
